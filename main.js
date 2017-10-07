@@ -25,28 +25,27 @@ server = net.createServer(function(sck) {
   log.info("Client connected to TCP Server");
   //on data received
   sck.on('data', function(data) {
-	  let jsonData
-	  try{
-	  	data = data.toString().replace(/\'/g,'"')		  
-		  log.debug(data)
-		  jsonData = JSON.parse(data)
-		  log.debug(data)
-	  }
-	  catch(e){
-	  	log.error("could not parse json")
-	  }
+    let jsonData
+    try {
+      data = data.toString().replace(/\'/g, '"')
+      log.debug(data)
+      jsonData = JSON.parse(data)
+      log.debug(data)
+    } catch (e) {
+      log.error("could not parse json")
+    }
 
-	  switch(jsonData.cmd){
-	  	case 0: //add new esp
-			  log.info("new esp " + jsonData.name + " added to array")
-			  esps.push(sck)
-			  break;
-		case 1: //app wants to control an esp
-			  for(let e = 0; e < esps.length; e++){
-			  	esps[e].write("" + jsonData.mode.id)
-			  }
-			  break;
-	  }
+    switch (jsonData.cmd) {
+      case 0: //add new esp
+        log.info("new esp " + jsonData.name + " added to array")
+        esps.push(sck)
+        break;
+      case 1: //app wants to control an esp
+        for (let e = 0; e < esps.length; e++) {
+          esps[e].write("" + jsonData.mode.id)
+        }
+        break;
+    }
   })
 
   //on socket disconnect

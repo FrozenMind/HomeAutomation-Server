@@ -1,0 +1,16 @@
+{
+  "name": "homeautomationserver",
+  "version": "0.0.1",
+  "description": "node server for home automation",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "valentin",
+  "license": "MIT",
+  "dependencies": {
+    "bunyan": "^1.8.12",
+    "net": "^1.0.2",
+    "os": "^0.1.1"
+  }
+}

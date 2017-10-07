@@ -38,13 +38,15 @@ server = net.createServer(function(sck) {
     switch (jsonData.cmd) {
       case 0: //add new esp
         log.info("new esp " + jsonData.name + " added to array")
+        sck.id = jsonData.id
         esps.push(sck)
-        break;
+        break
       case 1: //app wants to control an esp
         for (let e = 0; e < esps.length; e++) {
-          esps[e].write("" + jsonData.mode.id)
+          if (esps[e].id == jsonData.esp.id)
+            esps[e].write("" + jsonData.mode.id)
         }
-        break;
+        break
     }
   })
 

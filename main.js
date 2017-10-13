@@ -43,7 +43,7 @@ server = net.createServer(function(sck) {
     switch (jsonData.cmd) {
       case 0: //add new esp
         if (!getESPSocket(jsonData.id)) { //check if id exists
-          sck.write("{err: 1}") //ID exists already in arr
+          sck.write(getSocketError(1) + "\n") //ID exists already in arr
           return
         }
         log.info("new esp " + jsonData.name + " added to array")
@@ -53,13 +53,13 @@ server = net.createServer(function(sck) {
       case 1: //app wants to control an esp
         eSocket = getESPSocket(jsonData.esp.id)
         if (eSocket) //if socket exist in array
-          eSocket.write("" + jsonData.mode.id)
+          eSocket.write("" + jsonData.mode.id + "\n")
         else
-          sck.write("{err: 0}")
+          sck.write(getSocketError(0) + "\n")
         break
       case 10: //add android device to array
         if (!getESPSocket(jsonData.id)) { //check if id exists
-          sck.write("{err: 1}") //id exists already
+          sck.write(getSocketError(1) + "\n") //id exists already
           return
         }
         log.info("new client " + jsonData.name + " added to array")
@@ -71,14 +71,14 @@ server = net.createServer(function(sck) {
         if (cSocket)
           osActiveScks.push(cSocket) //add interval
         else
-          sck.write("{err: 0}")
+          sck.write(getSocketError(0) + "\n")
         break
       case 12: //remove os data interval
         cSocket = getClientSocket(jsonData.id)
         if (cSocket)
           removeFromArray(osActiveScks, cSocket) //remove interval
         else
-          sck.write("ERROR") //TODO: send error code to socket, id does not exist
+          sck.write(getSocketError(0) + "\n") //TODO: send error code to socket, id does not exist
         break
     }
   })
@@ -114,11 +114,12 @@ function getOsData() {
   //network ip addresses
   osData.network = {}
   let netInf = os.networkInterfaces()
-  for (let i in netInf) {
+  for (let i in netInfnetworkInterfaces) {
     if (i != "lo")
       osData.network[i] = netInf[i][0].address
   }
   osData.uptime = os.uptime() //second
+  osData.cmd = 12
   return osData
 }
 
@@ -127,7 +128,7 @@ function osDataIntervalFct() {
   if (osActiveScks.length > 0) {
     osData = getOsData()
     for (let o = 0; o < osActiveScks.length; o++) {
-      osActiveScks[o].write(osData)
+      osActiveScks[o].write(osData + "\n")
     }
   }
 }
@@ -145,8 +146,28 @@ function getClientSocket(id) {
 }
 
 function removeFromArray(arr, element) {
-  let index = arr.indexOf(element);
   if (index !== -1) {
+    let index = arr.indexOf(element);
     arr.splice(index, 1);
   }
+}
+
+//handles socket error
+function getSocketError(id) {
+  var errO = {
+    err: id
+  }
+
+  switch (id) {
+    case 0:
+      errO.msg = "Device not registered"
+      break
+    case 1:
+      errO.msg = "Device already registered"
+      break
+    default:
+      errO.msg = ""
+      break
+  }
+  return JSON.stringify(errO)
 }

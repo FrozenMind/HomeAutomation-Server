@@ -1,23 +1,8 @@
 let os = require('os')
 let net = require('net')
-let bunyan = require('bunyan')
 let fs = require('fs')
 let ClientManager = require('./lib/clientManager')
-
-//Logger init
-let log = bunyan.createLogger({
-  name: 'ESPServerLogger',
-  streams: [{
-    level: 'debug',
-    stream: process.stdout
-  }, {
-    level: 'info',
-    stream: process.stdout
-  }, {
-    level: 'error',
-    path: __dirname + '/log/error.log'
-  }]
-})
+let log = require('./lib/logLevel') //bunyan logger
 
 //init arrays
 let esps = new ClientManager(),
@@ -115,24 +100,4 @@ function osDataIntervalFct() {
       osActiveScks[o].write(osData + "\n")
     }
   }
-}
-
-//handles socket error
-function getSocketError(id) {
-  var errO = {
-    err: id
-  }
-
-  switch (id) {
-    case 0:
-      errO.msg = "Device not registered"
-      break
-    case 1:
-      errO.msg = "Device already registered"
-      break
-    default:
-      errO.msg = ""
-      break
-  }
-  return JSON.stringify(errO)
 }

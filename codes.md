@@ -15,6 +15,8 @@
 | 10 | add client to array |
 | 11 | activate os data interval |
 | 12 | remove os data interval |
+| 100 | tell client its id |
+| 101 | tell esp to run a mode |
 
 ## Error
 | ID | Description |

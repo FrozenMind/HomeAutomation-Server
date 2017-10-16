@@ -1,10 +1,11 @@
-var os = require('os')
-var net = require('net')
-var bunyan = require('bunyan')
-var fs = require('fs')
+let os = require('os')
+let net = require('net')
+let bunyan = require('bunyan')
+let fs = require('fs')
+let ClientManager = require('./lib/clientManager')
 
 //Logger init
-var log = bunyan.createLogger({
+let log = bunyan.createLogger({
   name: 'ESPServerLogger',
   streams: [{
     level: 'debug',
@@ -18,9 +19,10 @@ var log = bunyan.createLogger({
   }]
 })
 
-var esps = [],
-  clients = [],
-  osActiveScks = []
+//init arrays
+let esps = new ClientManager(),
+  users = new ClientManager(),
+  osActiveScks = new ClientManager()
 
 //TCP Server erzeugen!
 server = net.createServer(function(sck) {
@@ -30,55 +32,37 @@ server = net.createServer(function(sck) {
     //scope variables
     let eSocket, cSocket,
       jsonData
-    sck.write("echo \n")
     try {
-      data = data.toString().replace(/\'/g, '"')
-      log.debug(data)
+      //data = data.toString().replace(/\'/g, '"')
+      log.debug(data.toString())
       jsonData = JSON.parse(data)
-      log.debug(data)
+      log.debug(jsonData)
     } catch (e) {
       log.error("could not parse json")
+      return
     }
-
+    //handle received command
     switch (jsonData.cmd) {
       case 0: //add new esp
-        if (!getESPSocket(jsonData.id)) { //check if id exists
-          sck.write(getSocketError(1) + "\n") //ID exists already in arr
-          return
-        }
         log.info("new esp " + jsonData.name + " added to array")
-        sck.id = jsonData.id
-        esps.push(sck)
+        esps.add(jsonData.name, sck)
         break
       case 1: //app wants to control an esp
-        eSocket = getESPSocket(jsonData.esp.id)
-        if (eSocket) //if socket exist in array
-          eSocket.write("" + jsonData.mode.id + "\n")
-        else
-          sck.write(getSocketError(0) + "\n")
+        esps.send(jsonData.esp.id, {
+          cmd: 101,
+          mode: jsonData.mode.id
+        })
         break
       case 10: //add android device to array
-        if (!getESPSocket(jsonData.id)) { //check if id exists
-          sck.write(getSocketError(1) + "\n") //id exists already
-          return
-        }
         log.info("new client " + jsonData.name + " added to array")
-        sck.id = jsonData.id
-        clients.push(sck)
+        users.add(jsonData.name, sck)
         break
       case 11: //activate os data interval
-        cSocket = getClientSocket(jsonData.id)
-        if (cSocket)
-          osActiveScks.push(cSocket) //add interval
-        else
-          sck.write(getSocketError(0) + "\n")
+        osActiveScks.push(users.getObject(jsonData.id).socket) //add interval
         break
       case 12: //remove os data interval
-        cSocket = getClientSocket(jsonData.id)
-        if (cSocket)
-          removeFromArray(osActiveScks, cSocket) //remove interval
-        else
-          sck.write(getSocketError(0) + "\n") //TODO: send error code to socket, id does not exist
+        let index = osActiveScks.indexOf(users.getObject(jsonData.id).socket) //add interval
+        osActiveScks.splice(index, 1)
         break
     }
   })
@@ -130,25 +114,6 @@ function osDataIntervalFct() {
     for (let o = 0; o < osActiveScks.length; o++) {
       osActiveScks[o].write(osData + "\n")
     }
-  }
-}
-
-function getESPSocket(id) {
-  esps[esps.findIndex((e) => {
-    return e.id == id
-  })]
-}
-
-function getClientSocket(id) {
-  clients[clients.findIndex((c) => {
-    return c.id == id
-  })]
-}
-
-function removeFromArray(arr, element) {
-  if (index !== -1) {
-    let index = arr.indexOf(element);
-    arr.splice(index, 1);
   }
 }
 

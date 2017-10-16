@@ -1,13 +1,16 @@
-let os = require('os')
 let net = require('net')
 let fs = require('fs')
 let ClientManager = require('./lib/clientManager')
 let log = require('./lib/logLevel') //bunyan logger
+let OsData = require('./lib/osData')
 
 //init arrays
 let esps = new ClientManager(),
   users = new ClientManager(),
-  osActiveScks = new ClientManager()
+  osData = new OsData()
+
+//start os data interval
+osData.start()
 
 //TCP Server erzeugen!
 server = net.createServer(function(sck) {
@@ -43,11 +46,10 @@ server = net.createServer(function(sck) {
         users.add(jsonData.name, sck)
         break
       case 11: //activate os data interval
-        osActiveScks.push(users.getObject(jsonData.id).socket) //add interval
+        osData.add(users.getObject(jsonData.id).socket)
         break
       case 12: //remove os data interval
-        let index = osActiveScks.indexOf(users.getObject(jsonData.id).socket) //add interval
-        osActiveScks.splice(index, 1)
+        osData.remove(users.getObject(jsonData.id).socket) //add interval
         break
     }
   })
@@ -68,36 +70,3 @@ server = net.createServer(function(sck) {
 server.on("error", function(err) {
   log.error(err)
 })
-
-//returns object with os statistics
-let osInterval = setInterval(osDataIntervalFct, 1000)
-
-function getOsData() {
-  let osData = {}
-  osData.cores = os.cpus().length
-  //memory
-  osData.mem = {}
-  osData.mem.free = Math.floor(os.freemem() / 1000000) //mega bytes
-  osData.mem.total = Math.floor(os.totalmem() / 1000000) //mega bytes
-  osData.mem.percentage = (os.freemem() / os.totalmem()).toFixed(2) //%
-  //network ip addresses
-  osData.network = {}
-  let netInf = os.networkInterfaces()
-  for (let i in netInfnetworkInterfaces) {
-    if (i != "lo")
-      osData.network[i] = netInf[i][0].address
-  }
-  osData.uptime = os.uptime() //second
-  osData.cmd = 12
-  return osData
-}
-
-function osDataIntervalFct() {
-  let osData
-  if (osActiveScks.length > 0) {
-    osData = getOsData()
-    for (let o = 0; o < osActiveScks.length; o++) {
-      osActiveScks[o].write(osData + "\n")
-    }
-  }
-}
